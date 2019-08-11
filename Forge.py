@@ -13,9 +13,9 @@ from projekt import Pantheon, God, Sword
 def parseArgs():
    '''Processes command line arguments'''
    parser = argparse.ArgumentParser('Projekt Godsword')
-   parser.add_argument('--ray', type=str, default='default', 
+   parser.add_argument('--ray', type=str, default='default',
          help='Ray mode (local/default/remote)')
-   parser.add_argument('--render', action='store_true', default=False, 
+   parser.add_argument('--render', action='store_true', default=False,
          help='Render env')
    return parser.parse_args()
 
@@ -42,8 +42,22 @@ def render(trin, config, args):
 if __name__ == '__main__':
    #Set up experiment configuration
    #ray infra, and command line args
-   config = Experiment('demo', Config).init(
-      NPOP=1,
+   # config = Experiment('demo', Config).init(
+   #    NPOP=1,
+   #    NENT=128,
+   # )
+
+   # config = Experiment('ohutest_empty', Config).init(
+   # config = Experiment('ohutest2', Config).init(
+   #    NPOP=1,
+   #    NENT=128,
+   # )
+   # config = Experiment('pop32_2', Config).init(
+   #    NPOP=32,
+   #    NENT=128,
+   # )
+   config = Experiment('pop4_1', Config).init(
+      NPOP=4,
       NENT=128,
    )
 
@@ -62,7 +76,9 @@ if __name__ == '__main__':
 
    trinity.init(config, args)
 
+   # import ipdb; ipdb.set_trace()
    #Run and print logs
+
    while True:
       time = trinity.step()
       logs = trinity.logs()

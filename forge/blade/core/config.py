@@ -1,12 +1,10 @@
-from pdb import set_trace as T
-import numpy as np
 import inspect
-
+import numpy as np
 from collections import defaultdict
 from itertools import chain
 
 class Config:
-   ROOT = 'resource/maps/procedural/map'
+   MAP_ROOT = 'resource/maps/procedural/map'
    SUFFIX = '/map.tmx'
 
    SZ = 62

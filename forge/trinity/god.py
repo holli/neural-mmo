@@ -1,3 +1,4 @@
+from utils import global_consts
 from pdb import set_trace as T
 import ray
 import pickle
@@ -7,7 +8,7 @@ from forge.trinity.timed import Timed, runtime, waittime
 
 #Environment logic
 class God(Timed):
-   '''A simple Server level interface for generic, 
+   '''A simple Server level interface for generic,
    persistent, and asynchronous computation over
    remote Cores (Sword API)
 
@@ -19,11 +20,13 @@ class God(Timed):
    '''
    def __init__(self, trinity, config, args, idx):
       super().__init__()
-      self.disciples = [trinity.sword.remote(trinity, config, args, i+idx*config.NGOD) 
-            for i in range(config.NSWORD)]
+      if global_consts.RAY_REMOTE_SWORD:
+         self.disciples = [trinity.sword.remote(trinity, config, args, i+idx*config.NGOD) for i in range(config.NSWORD)]
+      else:
+         self.disciples = [trinity.sword._modified_class(trinity, config, args, i+idx*config.NGOD) for i in range(config.NSWORD)]
 
    def distrib(self, packet=None):
-      '''Asynchronous wrapper around the step 
+      '''Asynchronous wrapper around the step
       function of all remote Cores (Sword API)
 
       Args:
@@ -36,11 +39,14 @@ class God(Timed):
       '''
       rets = []
       for sword in self.disciples:
-         rets.append(sword.step.remote(packet))
+         if global_consts.RAY_REMOTE_SWORD:
+            rets.append(sword.step.remote(packet))
+         else:
+            rets.append(sword.step(packet))
       return rets
 
    def step(self, packet=None):
-      '''Synchronous wrapper around the step 
+      '''Synchronous wrapper around the step
       function of all remote Cores (Sword API)
 
       Args:
@@ -65,4 +71,7 @@ class God(Timed):
          A list of step returns from
          all remote cores (Sword API)
       '''
-      return ray.get(rets)
+      if global_consts.RAY_REMOTE_SWORD:
+         return ray.get(rets)
+      else:
+         return rets

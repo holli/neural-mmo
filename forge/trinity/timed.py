@@ -115,7 +115,7 @@ class TimeLog:
    #This function goes down and then back up
    #First applies max over subnodes. Then fills
    #each subnode with the parent node value.
-   #This is to counteract the effect of the 
+   #This is to counteract the effect of the
    #downwards pass pulling data up a layer.
    def merge(log, total, cache=(-1, -1)):
       run, wait = [0], [0]
@@ -152,8 +152,8 @@ class TimeLog:
                ret[stat][k] = max(v)
             elif mode == 'advanced':
                ret[stat][k] = {
-                     'min': min(v), 
-                     'max': max(v), 
+                     'min': min(v),
+                     'max': max(v),
                      'avg': sum(v)/len(v)}
 
       summary = Summary(ret, total)
@@ -169,6 +169,6 @@ class TimeLog:
    def advanced(timedList):
       return TimeLog.log(timedList, 'advanced')
 
-     
- 
+
+
 

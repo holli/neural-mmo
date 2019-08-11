@@ -15,14 +15,16 @@ from forge.ethyr.experience import RolloutManager
 
 from copy import deepcopy
 
+import forge
+
 @ray.remote
 class Sword(trinity.Sword):
    '''Core level Sword API demo
 
    This core level rollout worker node runs
    a copy of the environment and all associated
-   agents. Multiple Swords return observations, 
-   actions, and rewards to each server level 
+   agents. Multiple Swords return observations,
+   actions, and rewards to each server level
    optimizer node.'''
 
    def __init__(self, trin, config, args, idx):
@@ -60,22 +62,22 @@ class Sword(trinity.Sword):
       steps the environment to obtain new observations.
       Serializes (obs, action, reward) triplets for
       communication to an upstream optimizer node.'''
- 
+
       #Batch observations and make decisions
       stims = Stimulus.process(self.obs)
       self.manager.collectInputs(self.env, self.obs, stims)
 
       actions, outs = [], []
-      for batch in self.manager.batched(
-            self.config.SYNCBATCH):
-         pop, rollouts, batch = batch
+      for pop, rollouts, batch in self.manager.batched(self.config.SYNCBATCH):
+         # pop, rollouts, batch = batch
          keys, obs, stim, _, _, _, _ = batch
 
          #Run the policy
          atns, out, _ = self.net(pop, stim, obs=obs)
+         # atns = [[forge.ethyr.io.action.ActionArgs(action=forge.blade.io.action.static.North)]]
          actions += atns
          outs    += out
-      
+
       #Step the environment and all agents at once.
       #The environment handles action priotization etc.
       actions = dict(((o[1].entID, a) for o, a in zip(self.obs, actions)))
@@ -85,4 +87,5 @@ class Sword(trinity.Sword):
       #The envrionment is used to generate serialization keys
       self.manager.collectOutputs(self.env, self.obs, outs, rewards, dones)
       self.obs = nxtObs
+
 

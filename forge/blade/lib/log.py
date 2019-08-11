@@ -10,6 +10,8 @@ import json, pickle
 import time
 import ray
 
+from utils import global_consts
+
 #Static blob analytics
 class InkWell:
    def unique(blobs):
@@ -38,16 +40,16 @@ class InkWell:
 
    def lifetime(blobs):
       return {'lifetime':[blob.lifetime for blob in blobs]}
- 
+
    def reward(blobs):
       return {'reward':[blob.reward for blob in blobs]}
-  
+
    def value(blobs):
       return {'value': [blob.value for blob in blobs]}
 
 #Agent logger
 class Blob:
-   def __init__(self): 
+   def __init__(self):
       self.unique = {Material.GRASS.value: 0,
                      Material.SCRUB.value: 0,
                      Material.FOREST.value: 0}
@@ -77,7 +79,7 @@ class Quill:
          os.remove(modeldir + 'logs.p')
       except:
          pass
- 
+
    def timestamp(self):
       cur = time.time()
       ret = cur - self.time
@@ -100,13 +102,19 @@ class Quill:
 
       #Collect log update
       self.index += 1
-      rewards, blobs = [], []
+      lifetimes, blobs = [], []
+
+      lifetimes_ann = defaultdict(list)
       for blobList in logs:
          blobs += blobList
          for blob in blobList:
-            rewards.append(float(blob.lifetime))
-            
-      self.lifetime = np.mean(rewards)   
+            lifetimes.append(float(blob.lifetime))
+            lifetimes_ann[str(blob.annID)].append(blob.lifetime)
+
+      self.lifetime = np.mean(lifetimes)
+      self.lifetimes_arr = np.array(lifetimes)
+      self.lifetimes_ann = lifetimes_ann
+
       blobRet = []
       for e in blobs:
           if np.random.rand() < 0.1:
@@ -143,5 +151,5 @@ class Benchmarker:
             bench = benchmark.benchmark()
             print(k.__func__.__name__, 'Tick: ', tick,
                   ', Benchmark: ', bench, ', FPS: ', 1/bench)
- 
+
 

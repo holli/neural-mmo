@@ -2,6 +2,7 @@ from pdb import set_trace as T
 import numpy as np
 import torch
 import time
+from datetime import datetime
 
 from collections import defaultdict
 
@@ -27,34 +28,47 @@ class Pantheon(trinity.Pantheon):
    def __init__(self, trinity, config, args):
       '''Initializes a copy of the model, which keeps
       track of a copy of the weights for the optimizer.'''
-      super().__init__(trinity, config, args)      
+      super().__init__(trinity, config, args)
       self.config, self.args = config, args
 
-      self.net = Model(projekt.ANN, config, args)
+      self.model = Model(projekt.ANN, config)
       self.quill = Quill(config.MODELDIR)
       self.log = defaultdict(list)
-
       self.tick = 0
-      self.net.nParams
+
+      self.log_writer = self.config.log_writer()
 
    @runtime
    def step(self):
       '''Broadcasts updated weights to server level
       God optimizer nodes. Performs an Adam step
-      once optimizers return a batch of gradients.''' 
-      
-      recvs = super().step(self.net.model)
+      once optimizers return a batch of gradients.'''
+
+      # step_recvs = super().step(self.model.model)
+      step_recvs = super().step(self.model.params.detach().numpy())
 
       #Write logs using Quill
-      recvs, logs, nUpdates, nRollouts = list(zip(*recvs))
-      nUpdates = sum(nUpdates)
-      nRollouts = sum(nRollouts)
-      self.quill.scrawl(logs, nUpdates, nRollouts)
-      self.tick += 1
+      recvs, logs, nUpdates, nRollouts = list(zip(*step_recvs))
 
+      self.quill.scrawl(logs, sum(nUpdates), sum(nRollouts))
+      self.tick += 1
       self.quill.print()
+
       if not self.config.TEST:
-         lifetime = self.quill.latest()
-         self.net.stepOpt(recvs)
-         self.net.checkpoint(lifetime)
-         self.net.saver.print()
+         self.model.stepOpt(recvs)
+         self.model.checkpoint(self.quill.lifetime)
+
+         print(f'Model Tick: {self.model.model_tick}, Lifetime: {self.quill.lifetime}, Best: {self.model.lifetime_best}, Time: {datetime.utcnow()}')
+
+         global_step = self.model.model_tick
+         self.log_writer.add_scalar('nUpdates', sum(nUpdates), global_step=global_step)
+         self.log_writer.add_scalar('nRollouts', sum(nRollouts), global_step=global_step)
+         self.log_writer.add_histogram('nUpdatesHist', np.array(nUpdates), global_step=global_step)
+         self.log_writer.add_histogram('nRolloutsHist', np.array(nRollouts), global_step=global_step)
+         self.log_writer.add_scalar('Lifetime', self.quill.lifetime, global_step=global_step)
+         self.log_writer.add_histogram('LifetimesHist', self.quill.lifetimes_arr, global_step=global_step)
+
+         for key, vals in self.quill.lifetimes_ann.items():
+            self.log_writer.add_scalar(f'LifetimePerAnn/{key}', np.mean(vals), global_step=global_step)
+
+

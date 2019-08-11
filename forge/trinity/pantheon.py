@@ -4,10 +4,11 @@ import pickle
 import time
 
 from forge.trinity.timed import Timed, runtime, waittime
+from utils import global_consts
 
 #Cluster/Master logic
 class Pantheon(Timed):
-   '''A simple Cluster level interface for generic, 
+   '''A simple Cluster level interface for generic,
    persistent, and asynchronous computation over
    multiple remote Servers (God API)
 
@@ -15,11 +16,14 @@ class Pantheon(Timed):
       trinity: A Trinity object
       config: A forge.blade.core.Config object
       args: Hook for additional user arguments
+      remote_god: If you want to run god locally for debugging
    '''
    def __init__(self, trinity, config, args):
       super().__init__()
-      self.disciples = [trinity.god.remote(trinity, config, args, idx) 
-            for idx in range(config.NGOD)]
+      if global_consts.RAY_REMOTE_GOD:
+         self.disciples = [trinity.god.remote(trinity, config, args, idx) for idx in range(config.NGOD)]
+      else:
+         self.disciples = [trinity.god._modified_class(trinity, config, args, 0)]
 
    def distrib(self, packet):
       '''Asynchronous wrapper around the step function
@@ -28,7 +32,7 @@ class Pantheon(Timed):
       Args:
          packet: Arbitrary user data broadcast
             to all Servers (God API)
-         
+
       Returns:
          A list of async handles to the step returns
          from all remote servers (God API)
@@ -45,13 +49,16 @@ class Pantheon(Timed):
       Args:
          packet: Arbitrary user data broadcast
             to all Servers (God API)
- 
+
       Returns:
          A list of step returns from all
          remote servers (God level API)
       '''
-      rets = self.distrib(packet)
-      return self.sync(rets)
+      if global_consts.RAY_REMOTE_GOD:
+         rets = self.distrib(packet)
+         return self.sync(rets)
+      else:
+         return [self.disciples[0].step(packet)]
 
    @waittime
    def sync(self, rets):

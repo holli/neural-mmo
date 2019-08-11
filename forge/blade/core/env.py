@@ -45,7 +45,7 @@ class Env:
       self.statTimer  = utils.BenchmarkTimer()
 
    def stim(self, pos):
-      return self.env.getPadded(self.env.tiles, pos, 
+      return self.env.getPadded(self.env.tiles, pos,
             self.stimSize, key=lambda e:e.index).astype(np.int8)
 
    #Hook for render

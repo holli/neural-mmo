@@ -29,10 +29,10 @@ class God(trinity.God):
    This is effectively a lightweight variant of the
    Rapid computation model, with the potential notable
    difference that we also recompute the forward pass
-   from small observation buffers rather than 
+   from small observation buffers rather than
    communicating large activation tensors.
 
-   This demo builds up the ExperienceBuffer utility, 
+   This demo builds up the ExperienceBuffer utility,
    which handles rollout batching.'''
 
    def __init__(self, trin, config, args, idx):
@@ -73,8 +73,7 @@ class God(trinity.God):
    def processRollouts(self):
       '''Runs minibatch forwards/backwards
       over all available experience'''
-      for batch in self.manager.batched(
-            self.config.OPTIMBATCH, forOptim=True):
+      for batch in self.manager.batched(self.config.OPTIMBATCH, forOptim=True):
          rollouts = self.forward(*batch)
          self.backward(rollouts)
 
@@ -92,7 +91,7 @@ class God(trinity.God):
       for key, out, atn, val, reward, done in zip(
             keys, outs, rawActions, vals, rewards, dones):
 
-         atnKey, lens, atn = list(zip(*[(k, len(e), idx) 
+         atnKey, lens, atn = list(zip(*[(k, len(e), idx)
             for k, e, idx in atn]))
 
          atn = np.array(atn)
@@ -105,7 +104,7 @@ class God(trinity.God):
    def backward(self, rollouts):
       '''Compute backward pass and logs from rollout objects'''
       reward, val, pg, valLoss, entropy = optim.backward(
-            rollouts, valWeight=0.25,
-            entWeight=self.config.ENTROPY, device=self.config.DEVICE)
+            rollouts, device=self.config.DEVICE,
+            valWeight=0.25, entWeight=self.config.ENTROPY)
 
-    
+

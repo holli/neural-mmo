@@ -26,7 +26,7 @@ class Map:
       self.updateList = set()
       self.config = config
       self.nCounts = config.NPOP
-      self.genEnv(config.ROOT + str(idx) + config.SUFFIX)
+      self.genEnv(config.MAP_ROOT + str(idx) + config.SUFFIX)
 
    def harvest(self, r, c):
       self.updateList.add(self.tiles[r, c])
@@ -48,7 +48,7 @@ class Map:
       cl, cr = c-rng, c+rng+1
       return self.tiles[rt:rb, cl:cr]
 
-   #Fix this function to key by attr for mat.index 
+   #Fix this function to key by attr for mat.index
    def getPadded(self, mat, pos, sz, key=lambda e: e):
       ret = np.zeros((2*sz+1, 2*sz+1), dtype=np.int32)
       R, C = pos
@@ -63,12 +63,12 @@ class Map:
       return ret
 
    def np(self):
-      env = np.array([e.state.index for e in 
+      env = np.array([e.state.index for e in
             self.tiles.ravel()]).reshape(*self.shape)
       return env
-     
+
    def genEnv(self, fName):
       tiles = dict((mat.value.tex, mat.value) for mat in enums.Material)
       self.tiles = loadTiled(self.config, fName, tiles, self.nCounts)
       self.shape = self.tiles.shape
-       
+

@@ -12,7 +12,7 @@ class ManualAdam(optim.Adam):
    def step(self, grads):
       '''Takes an Adam step on the parameters using
       the user provided gradient list provided.
-   
+
       Args:
          grads: A list of gradients
       '''
@@ -25,7 +25,7 @@ class ManualSGD(optim.SGD):
    def step(self, grads):
       '''Takes an SGD step on the parameters using
       the user provided gradient list provided.
-   
+
       Args:
          grads: A list of gradients
       '''
@@ -50,7 +50,7 @@ def merge(rollouts):
             print(len(rollout.outs))
             print('----')
             T()
-           
+
          val = rollout.vals[idx]
          ret = rollout.returns[idx]
 
@@ -81,7 +81,7 @@ def backward(rollouts, valWeight=0.5, entWeight=0, device='cpu'):
       val: Mean value function estimate across rollouts
       pg: Policy gradient loss
       valLoss: Value loss
-      entropy: Entropy bonus      
+      entropy: Entropy bonus
    '''
    outs = merge(rollouts)
    pg, entropy, attackentropy = 0, 0, 0
