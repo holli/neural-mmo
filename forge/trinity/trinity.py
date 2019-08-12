@@ -9,16 +9,16 @@ class Trinity(Timed):
    Trinity is a featherweight wrapper around the
    excellent Ray API that provides a simple interface
    for generic, persistent, and asynchronous computation
-   at the Cluster, Server, and Core levels. It also 
-   provides builtin performance logging and does not 
+   at the Cluster, Server, and Core levels. It also
+   provides builtin performance logging and does not
    interfere with pdb breakpoint debugging.
-  
+
    To use Trinity, override Pantheon, God, and Sword to
    specify Cluster, Server, and Core level execution.
    Overriding the step() function allows you to perform
    arbitrary computation and return arbitrary data to
    the previous layer. Calling super.step() allows you
-   to send arbitrary data and receive computation results 
+   to send arbitrary data and receive computation results
    from the next layer.
 
    Args:
@@ -31,9 +31,9 @@ class Trinity(Timed):
       interface for creating computation models. By
       example, our demo project adopts a computation
       model similar to OpenAI Rapid. But trinity makes it
-      possible to move any piece of the execution among 
+      possible to move any piece of the execution among
       hardware layers with relatively little code and testing.
-   ''' 
+   '''
    def __init__(self, pantheon, god, sword):
       super().__init__()
       self.pantheon = pantheon

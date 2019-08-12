@@ -2,21 +2,14 @@ import os
 from forge.blade.core import config
 from pathlib import Path
 from torch.utils.tensorboard import SummaryWriter
+import yaml
+import numpy as np
+
+from utils import global_consts # global_consts.config
 
 class Config(config.Config):
    EXPERIMENTS_DIR = 'resource/exps'
-   # MODELDIR = 'resource/exps' #Where to store models
 
-   # LOAD = True #Load model from file?
-   # BEST = True #If loading, most recent or highest lifetime?
-   # TEST = True #Update the model during run?
-
-   # LOAD = False
-   # BEST = False
-   # TEST = False
-
-   LOAD = True
-   BEST = True
    TEST = True
 
    NENT = 128
@@ -28,7 +21,7 @@ class Config(config.Config):
    ENTROPY = 0.01 #Entropy bonus for policy gradient loss
 
    # OPTIMIZER_LR = 0.001
-   OPTIMIZER_LR = 0.01
+   OPTIMIZER_LR = 0.001
    OPTIMIZER_WEIGHT_DECAY = 0.00001
 
    # NGOD   = 2  #Number of GPU optimizer servers
@@ -63,6 +56,36 @@ class Config(config.Config):
    def log_writer(self):
       return SummaryWriter(self.TBLOGDIR_CURRENT)
 
+   # Different gammas, you probably want to have it so that mean lifetime
+   # results in learning from all steps
+   # def test_gamma(gamma): return [f'{gamma**i:.2f}' for i in range(20)]
+   # test_gamma(0.99) ['1.00', '0.99', '0.98', ... '0.83']
+   # test_gamma(0.95) ['1.00', '0.95', '0.90', ... '0.38']
+   # test_gamma(0.9)  ['1.00', '0.90', '0.81', ... '0.14']
+   DISCOUNT_GAMMA = 0.99
+   def reward_discount_array(self, N):
+      discounts = np.array([self.DISCOUNT_GAMMA**i for i in range(N)])
+
+      # discounts[20:] -= 0.2 # TODO USING MANUAL WEIRD REWARD; MAYBE SOMETHING BETTER??
+
+      return discounts
+
+   def _dump_yaml_to_versions(self):
+      d_self = self.__dict__.copy()
+      d_class = self.__class__.__dict__.copy()
+      [d_class.pop(key, None) for key in d_self.keys()]
+      d_class_base = self.__class__.__base__.__dict__.copy()
+      [d_class_base.pop(key, None) for key in (list(d_self.keys()) + list(d_class.keys()))]
+
+      data = {'self': d_self, 'class': d_class, 'class_base': d_class_base}
+
+      vers_path = (Path(self.ROOT) / 'versions')
+      vers_path.mkdir(parents=True, exist_ok=True)
+
+      fname = vers_path / f'{self.VERSION:02d}.yml'
+      with open(fname, 'w') as outfile:
+         yaml.dump(data, outfile, sort_keys=False)
+
    def __init__(self, name, **kwargs):
       name = name.replace('.py', '')
       self.name = name
@@ -80,6 +103,10 @@ class Config(config.Config):
          with version_file.open() as f: self.VERSION = int(f.readline()) + 1
       with open(version_file, 'w') as f: f.write(str(self.VERSION) + "\n")
       self.TBLOGDIR_CURRENT = os.path.join(self.TBLOGDIR, str(self.VERSION))
+
+      if self.TEST:
+         self.TBLOGDIR_CURRENT += '_test'
+
       Path(self.TBLOGDIR_CURRENT).mkdir(parents=True, exist_ok=True)
 
       # model_path = Path(self.MODELDIR)
@@ -90,6 +117,10 @@ class Config(config.Config):
 
       for k, v in kwargs.items():
          setattr(self, k, v)
+
+      self._dump_yaml_to_versions()
+      global_consts.config = self
+      global_consts.joo = 'testa'
 
       print(f'Config: {self.name} ({self.VERSION}) --> NENT: {self.NENT}, NPOP: {self.NPOP} @ {self.ROOT}')
       print(f'Start tensorboard with\ntensorboard --logdir={self.TBLOGDIR}')

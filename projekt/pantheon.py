@@ -1,4 +1,3 @@
-from pdb import set_trace as T
 import numpy as np
 import torch
 import time
@@ -13,6 +12,8 @@ from forge.blade.lib.log import Quill
 
 from forge import trinity
 from forge.trinity.timed import runtime
+
+from pdb import set_trace as T
 
 class Pantheon(trinity.Pantheon):
    '''Cluster level Pantheon API demo
@@ -31,7 +32,7 @@ class Pantheon(trinity.Pantheon):
       super().__init__(trinity, config, args)
       self.config, self.args = config, args
 
-      self.model = Model(projekt.ANN, config)
+      self.model = Model(config)
       self.quill = Quill(config.MODELDIR)
       self.log = defaultdict(list)
       self.tick = 0
@@ -48,27 +49,33 @@ class Pantheon(trinity.Pantheon):
       step_recvs = super().step(self.model.params.detach().numpy())
 
       #Write logs using Quill
-      recvs, logs, nUpdates, nRollouts = list(zip(*step_recvs))
+      gradients_recvs, logs, nUpdates_list, nRollouts_list = list(zip(*step_recvs))
 
-      self.quill.scrawl(logs, sum(nUpdates), sum(nRollouts))
+      nUpdates = sum(nUpdates_list)
+      nRollouts = sum(nRollouts_list)
+      self.quill.scrawl(logs, nUpdates, nRollouts)
       self.tick += 1
-      self.quill.print()
 
       if not self.config.TEST:
-         self.model.stepOpt(recvs)
+         self.model.step_optimizer(gradients_recvs, nUpdates, nRollouts)
          self.model.checkpoint(self.quill.lifetime)
-
-         print(f'Model Tick: {self.model.model_tick}, Lifetime: {self.quill.lifetime}, Best: {self.model.lifetime_best}, Time: {datetime.utcnow()}')
-
          global_step = self.model.model_tick
-         self.log_writer.add_scalar('nUpdates', sum(nUpdates), global_step=global_step)
-         self.log_writer.add_scalar('nRollouts', sum(nRollouts), global_step=global_step)
-         self.log_writer.add_histogram('nUpdatesHist', np.array(nUpdates), global_step=global_step)
-         self.log_writer.add_histogram('nRolloutsHist', np.array(nRollouts), global_step=global_step)
-         self.log_writer.add_scalar('Lifetime', self.quill.lifetime, global_step=global_step)
-         self.log_writer.add_histogram('LifetimesHist', self.quill.lifetimes_arr, global_step=global_step)
+      else:
+         global_step = self.tick
 
-         for key, vals in self.quill.lifetimes_ann.items():
-            self.log_writer.add_scalar(f'LifetimePerAnn/{key}', np.mean(vals), global_step=global_step)
+      print(f'Model Tick: {self.model.model_tick}, Lifetime: {self.quill.lifetime:.2f},',
+            f'Best: {self.model.lifetime_best:.2f}, Time: {datetime.utcnow()}')
+      print(f'Updates (moves): Total: {self.model.updates_total}, Step: {nUpdates} |||',
+            f'Rollouts (lives): Total: {self.model.rollouts_total}, Step: {nRollouts},')
+
+      self.log_writer.add_scalar('nUpdates', nUpdates, global_step=global_step)
+      self.log_writer.add_scalar('nRollouts', nRollouts, global_step=global_step)
+      self.log_writer.add_histogram('nUpdatesHist', np.array(nUpdates_list), global_step=global_step)
+      self.log_writer.add_histogram('nRolloutsHist', np.array(nRollouts_list), global_step=global_step)
+      self.log_writer.add_scalar('Lifetime', self.quill.lifetime, global_step=global_step)
+      self.log_writer.add_histogram('LifetimesHist', self.quill.lifetimes_arr, global_step=global_step)
+
+      for key, vals in self.quill.lifetimes_ann.items():
+         self.log_writer.add_scalar(f'LifetimePerAnn/{key}', np.mean(vals), global_step=global_step)
 
 

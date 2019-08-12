@@ -3,12 +3,15 @@ import numpy as np
 import torch
 import time
 import os
-import json
+import yaml
+from datetime import datetime
 from collections import defaultdict
 from torch.nn.parameter import Parameter
 
 from forge.ethyr.torch import save
 from forge.ethyr.torch.optim import ManualAdam
+
+import projekt
 
 class Model:
    '''Model manager class
@@ -21,18 +24,21 @@ class Model:
       config: A Config specification
       args: Hook for additional user arguments
    '''
-   def __init__(self, ann, config):
+   def __init__(self, config):
       # self.saver = save.Saver(config.MODELDIR, 'models', 'bests', resetTol=256)
       self.config = config
 
       # self.models = ann(self.config).params()
-      ann_params = ann(self.config).params()
+      ann = projekt.ANN(self.config)
+      ann_params = ann.params()
       self.params = Parameter(torch.Tensor(np.array(ann_params)))
 
       self.model_tick = 0
       self.time_start = time.time()
       self.time_checkpoint = self.time_start
       self.lifetime_best = 0
+      self.rollouts_total = 0
+      self.updates_total = 0
 
       if self.config.TEST:
          self.optimizer = None
@@ -56,14 +62,17 @@ class Model:
    #    self.params = Parameter(torch.Tensor(np.array(ann_params)))
 
    #Grads and clip
-   def stepOpt(self, gradList):
+   def step_optimizer(self, gradients, updates_increase, rollouts_increase):
       '''Clip the provided gradients and step the optimizer
 
       Args:
          gradList: a list of gradients
       '''
       self.model_tick += 1
-      grad = np.array(gradList)
+      self.rollouts_total += rollouts_increase
+      self.updates_total += updates_increase
+
+      grad = np.array(gradients)
       grad = np.mean(grad, 0)
       grad = np.clip(grad, -5, 5)
 
@@ -71,25 +80,23 @@ class Model:
       self.optimizer.step(gradAry)
 
    def checkpoint(self, lifetime, extra_info = {}):
-      '''Save the model to checkpoint
-
-      Args:
-         reward: Mean reward of the model
-      '''
       assert not self.config.TEST
+      lifetime = float(lifetime)
 
       info = {}
-      info['time_utc']: str(datetime.utcnow())
-      info['time_start'] = self.time_start
-      info['time_checkpoint'] = time.time()
-      info['time_duraction_checkpoint'] = self.time_checkpoint - time.time()
-      info['config_version'] = self.config.VERSION
-      info['model_tick'] = self.model_tick
       best = lifetime > self.lifetime_best
       if best:
          self.lifetime_best = lifetime
       info['lifetime'] = lifetime
       info['lifetime_best'] = self.lifetime_best
+      info['model_tick'] = self.model_tick
+      info['config_version'] = self.config.VERSION
+      info['time_utc']: str(datetime.utcnow())
+      info['time_start'] = int(self.time_start)
+      info['time_checkpoint'] = int(time.time())
+      info['time_duraction_checkpoint'] = int(time.time() - self.time_checkpoint)
+      info['rollouts_total'] = self.rollouts_total
+      info['updates_total'] = self.updates_total
 
       for key, value in extra_info.items():
          info[key] = value
@@ -108,22 +115,16 @@ class Model:
       self.time_checkpoint = time.time()
 
    def _save(self, fname, data):
-      # torch.save(data, self.root + fname + self.extn)
-      path = os.path.join(self.config.MODELDIR, (fname + '.pth'))
-      torch.save(data, path)
+      path = os.path.join(self.config.MODELDIR, fname)
+      torch.save(data, path + '.pth')
 
-      with open(path + ".txt", 'w') as outfile:
-         json.dump(data['info'], outfile)
-         outfile.write("\n")
+      # Only for easier browsing of files
+      with open(path + ".yml", 'w') as outfile:
+         yaml.dump(data['info'], outfile, sort_keys=False)
+         # json.dump(data['info'], outfile)
+         # outfile.write("\n")
 
    def load_best(self):
-      '''Load a model from file
-
-      Args:
-         best (bool): Whether to load the best (True)
-             or most recent (False) checkpoint
-      '''
-
       fname = os.path.join(self.config.MODELDIR, 'bests.pth')
       # fname = self.bestf if best else self.savef
       if not os.path.isfile(fname):
@@ -137,7 +138,10 @@ class Model:
       info = data['info']
       if info:
          self.model_tick = info['model_tick']
-         self.lifetime_best = info['lifetime']
+         self.lifetime_best = float(info['lifetime'])
+         if 'rollouts_total' in info: # supporting older saves
+            self.rollouts_total = info['rollouts_total']
+            self.updates_total = info['updates_total']
 
       return info
 

@@ -42,7 +42,7 @@ class Sword(trinity.Sword):
       self.obs, _, _, _ = self.env.reset()
 
       #For the renderer
-      self.manager = RolloutManager()
+      self.manager = RolloutManager(config)
 
    @runtime
    def step(self, packet=None):
@@ -88,4 +88,10 @@ class Sword(trinity.Sword):
       self.manager.collectOutputs(self.env, self.obs, outs, rewards, dones)
       self.obs = nxtObs
 
+      if self.config.RENDERING_WEB:
+         if not hasattr(self, '_tick_counter'): self._tick_counter = 0
+         self._tick_counter += 1
+         lifetimes = np.array([arr[1]._timeAlive.val for arr in nxtObs])
+         print(f'{self._tick_counter:4d} Lifetimes avg: {np.average(lifetimes):.2f}, ' +
+               f'min: {lifetimes.min():.2f}, mean: {lifetimes.mean():.2f}, max: {lifetimes.max():.2f}, agents: {len(lifetimes)}')
 

@@ -86,12 +86,12 @@ class Quill:
       self.time = cur
       return str(ret)
 
-   def print(self):
-      print(
-            'Rollouts: (Total) ', self.nRollouts,
-            ' | (Epoch) ', self.curRollouts,
-            ', Updates: (Total) ', self.nUpdates,
-            ' | (Epoch) ', self.curUpdates)
+   # def print(self):
+   #    print(
+   #          'Rollouts: (Total) ', self.nRollouts,
+   #          ' | (Epoch) ', self.curRollouts,
+   #          ', Updates: (Total) ', self.nUpdates,
+   #          ' | (Epoch) ', self.curUpdates)
 
    def scrawl(self, logs, nUpdates, nRollouts):
       #Collect experience information

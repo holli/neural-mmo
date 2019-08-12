@@ -1,12 +1,8 @@
-from pdb import set_trace as T
 import numpy as np
-
-from itertools import chain 
+from itertools import chain
 from collections import defaultdict
 
-
 from forge.blade.lib.log import Blob
-
 from forge.ethyr.io import Serial
 from forge.ethyr.experience import Rollout, Comms, Batcher
 
@@ -18,9 +14,12 @@ class RolloutManager:
    for use on remote machines, and handle network output data
    for use with the ethyr loss/optimizer libraries.
    '''
-   def __init__(self, rollout=Rollout):
-      self.partial  = defaultdict(rollout)
-      self.complete = defaultdict(rollout)
+   def __init__(self, config):
+      self.config = config
+      # self.partial  = defaultdict(rollout)
+      # self.complete = defaultdict(rollout)
+      self.partial  = defaultdict(lambda: Rollout(self.config))
+      self.complete = defaultdict(lambda: Rollout(self.config))
       self.log = []
 
       self.nUpdates  = 0
@@ -87,7 +86,7 @@ class RolloutManager:
       self.complete.clear()
       self.reset()
       return packet
-   
+
    ### For use on optimizer ###
    def recv(self, packets):
       '''Unpack communicated data to internal buffers'''

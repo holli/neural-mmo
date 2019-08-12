@@ -1,14 +1,13 @@
-from pdb import set_trace as T
 import numpy as np
-
-from itertools import chain 
+from itertools import chain
 from collections import defaultdict
 
 from forge.blade.lib.log import Blob
 
 class Rollout:
    '''Rollout object used internally by RolloutManager'''
-   def __init__(self):
+   def __init__(self, config):
+      self.config = config
       self.keys, self.obs      = [], []
       self.stims, self.actions = [], []
       self.rewards, self.dones = [], []
@@ -24,9 +23,9 @@ class Rollout:
       assert self.time == len(self.stims)
       return self.time
 
-   def discount(self, gamma=0.99):
+   def discount(self):
       '''Applies standard gamma discounting to the given trajectory
-      
+
       Args:
          rewards: List of rewards
          gamma: Discount factor
@@ -38,7 +37,10 @@ class Rollout:
          You can override Rollout to modify the discount algorithm
       '''
       rets, N = [], len(self.rewards)
-      discounts = np.array([gamma**i for i in range(N)])
+
+      discounts = self.config.reward_discount_array(N)
+      # discounts = np.array([self.config.DISCOUNT_GAMMA**i for i in range(N)])
+
       rewards = np.array(self.rewards)
       for idx in range(N):
          rets.append(sum(rewards[idx:]*discounts[:N-idx]))
@@ -46,8 +48,8 @@ class Rollout:
 
    def fill(self, key, out, val):
       '''Add in data needed for backwards pass'''
-      self.outs.append(out) 
-      self.vals.append(val) 
+      self.outs.append(out)
+      self.vals.append(val)
 
       self.feather.scrawl(key)
       self.feather.value(val)
@@ -94,7 +96,7 @@ class Feather:
       self.blob.entID = entID
       self.blob.annID = annID
       self.blob.world = world
-      
+
       #tile = self.tile(stim)
       #self.move(tile, ent.pos)
       #self.action(arguments, atnArgs)

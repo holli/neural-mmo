@@ -1,1 +1,6 @@
 *.pyc
+tmp/
+old/
+resource/exps
+# forge/embyr
+.vscode

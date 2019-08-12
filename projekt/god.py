@@ -40,7 +40,7 @@ class God(trinity.God):
       super().__init__(trin, config, args, idx)
       self.config, self.args = config, args
 
-      self.manager = RolloutManager()
+      self.manager = RolloutManager(config)
 
       self.net = projekt.ANN(
                config).to(self.config.DEVICE)
