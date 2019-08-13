@@ -1,6 +1,32 @@
 import argparse
-from utils import global_consts
 from forge.ethyr.torch import Model
+from forge.blade import lib
+from forge.trinity import smith, Trinity
+from forge.trinity.timed import TimeLog
+from projekt import Pantheon, God, Sword
+import ray
+
+def GetGodRay(config):
+   # return God
+   if 'cuda' in config.DEVICE.lower():
+      return ray.remote(num_gpus=1)(God)
+   else:
+      return ray.remote(num_cpus=1)(God)
+
+
+def train_loop(config, args):
+   lib.ray.init(config.RAY_MODE)
+   # lib.ray.init('local') # Might not work in all cases, caused some problems with grad transfers
+
+   #Create a Trinity object specifying: Cluster, Server, and Core level execution
+   trinity = Trinity(Pantheon, GetGodRay(config), Sword)
+   # trinity = Trinity(Pantheon, God, Sword)
+   trinity.init(config, args)
+
+   while True:
+      trinity.step()
+      logs = trinity.logs()
+      logs = TimeLog.log(logs)
 
 def parse_args():
    '''Processes command line arguments'''
@@ -11,7 +37,7 @@ def parse_args():
       help='Render env')
    return parser.parse_args()
 
-def render(trin, config, args):
+def render(config, args):
    """Runs the environment in render mode
 
    Connect to localhost:8080 to view the client.
@@ -26,27 +52,20 @@ def render(trin, config, args):
       a fixed tick rate
       """
 
+   lib.ray.init('local')
+   trinity = Trinity(Pantheon, GetGodRay(config), Sword)
+
    from forge.embyr.twistedserver import Application
 
    config.TEST = True
    config.RENDERING_WEB = True
 
-   #    global_consts.RAY_REMOTE_GOD = False
 
-   if global_consts.RAY_REMOTE_GOD:
-      sword = trin.sword.remote(trin, config, args, idx=0)
-      env = sword.getEnv.remote()
+   sword = trin.sword.remote(trin, config, args, idx=0)
+   env = sword.getEnv.remote()
+   model = Model(config)
+   sword.step.remote(model.params.detach().numpy())
+   Application(env, sword.tick.remote)
 
-      model = Model(config)
-      sword.step.remote(model.params.detach().numpy())
-
-      Application(env, sword.tick.remote)
-   else:
-      print("Starting with local stuff")
-      sword = trin.sword._modified_class(trin, config, args, idx=0)
-      env = sword.getEnv()
-      model = Model(config)
-      sword.net.recvUpdate(model.params.detach().numpy())
-      Application(env, sword.tick)
 
 

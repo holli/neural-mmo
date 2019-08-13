@@ -1,5 +1,3 @@
-from utils import global_consts
-from pdb import set_trace as T
 import ray
 import pickle
 import time
@@ -20,10 +18,7 @@ class God(Timed):
    '''
    def __init__(self, trinity, config, args, idx):
       super().__init__()
-      if global_consts.RAY_REMOTE_SWORD:
-         self.disciples = [trinity.sword.remote(trinity, config, args, i+idx*config.NGOD) for i in range(config.NSWORD)]
-      else:
-         self.disciples = [trinity.sword._modified_class(trinity, config, args, i+idx*config.NGOD) for i in range(config.NSWORD)]
+      self.disciples = [trinity.sword.remote(trinity, config, args, i+idx*config.NGOD) for i in range(config.NSWORD)]
 
    def distrib(self, packet=None):
       '''Asynchronous wrapper around the step
@@ -39,10 +34,8 @@ class God(Timed):
       '''
       rets = []
       for sword in self.disciples:
-         if global_consts.RAY_REMOTE_SWORD:
-            rets.append(sword.step.remote(packet))
-         else:
-            rets.append(sword.step(packet))
+         rets.append(sword.step.remote(packet))
+
       return rets
 
    def step(self, packet=None):
@@ -71,7 +64,4 @@ class God(Timed):
          A list of step returns from
          all remote cores (Sword API)
       '''
-      if global_consts.RAY_REMOTE_SWORD:
-         return ray.get(rets)
-      else:
-         return rets
+      return ray.get(rets)

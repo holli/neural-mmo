@@ -10,8 +10,6 @@ import json, pickle
 import time
 import ray
 
-from utils import global_consts
-
 #Static blob analytics
 class InkWell:
    def unique(blobs):

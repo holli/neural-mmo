@@ -11,6 +11,7 @@ class Config(config.Config):
    EXPERIMENTS_DIR = 'resource/exps'
 
    TEST = True
+   RENDERING_WEB = False
 
    NENT = 128
    NPOP = 1
@@ -49,9 +50,12 @@ class Config(config.Config):
    OPTIMBATCH  = SYNCUPDATES * NGOD
    SYNCBATCH   = SYNCUPDATES
 
-   #Device used on the optimizer server.
-   #Rollout workers use CPU by default
+   RAY_MODE = 'default' # 'local' / 'default' / 'remote'
+
+   #Device used on the God optimizer server. Rollout workers use CPU by default
+   #Also used for ray to set num_gpus=1 if this is cuda
    DEVICE = 'cuda:0'
+   # DEVICE = 'cpu'
 
    def log_writer(self):
       return SummaryWriter(self.TBLOGDIR_CURRENT)
@@ -120,7 +124,6 @@ class Config(config.Config):
 
       self._dump_yaml_to_versions()
       global_consts.config = self
-      global_consts.joo = 'testa'
 
       print(f'Config: {self.name} ({self.VERSION}) --> NENT: {self.NENT}, NPOP: {self.NPOP} @ {self.ROOT}')
       print(f'Start tensorboard with\ntensorboard --logdir={self.TBLOGDIR}')

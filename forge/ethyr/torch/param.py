@@ -33,7 +33,7 @@ def setParameters(ann, meanVec):
 
 def setGrads(ann, grads):
    '''Sets the gradients of the ann
-      
+
    Args:
       grads: A list of gradients
    '''
@@ -73,6 +73,7 @@ def getGrads(ann, warn=True):
    ret = []
    for param, e in ann.named_parameters():
       if e.grad is None:
+         import ipdb; ipdb.set_trace()
          if warn:
             print(str(param), ': GRADIENT NOT FOUND. Possible causes: (1) you have loaded a model with a different architecture. (2) This layer is not differentiable or not in use.')
          ret += np.zeros(e.shape).ravel().tolist()

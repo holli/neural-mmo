@@ -13,8 +13,6 @@ from forge.blade.lib.log import Quill
 from forge import trinity
 from forge.trinity.timed import runtime
 
-from pdb import set_trace as T
-
 class Pantheon(trinity.Pantheon):
    '''Cluster level Pantheon API demo
 

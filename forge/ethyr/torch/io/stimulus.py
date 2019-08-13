@@ -14,7 +14,7 @@ from forge.ethyr.io import Serial, utils
 from forge.ethyr.torch.policy.embed import Input, TaggedInput, Embedding
 
 class Lookup:
-   '''Lookup utility for indexing 
+   '''Lookup utility for indexing
    (name, data) pairs'''
    def __init__(self):
       self.names = []
@@ -38,7 +38,7 @@ class Lookup:
       data = torch.cat(data)
       assert len(idxs) == len(data)
       return idxs, data
- 
+
 class Env(nn.Module):
    '''Network responsible for processing observations
 
@@ -112,7 +112,7 @@ class Env(nn.Module):
       features = list(features.values())
       features = torch.cat(features, -2)
       features = net.attn2(features).squeeze(0)
-      
+
       embed = lookup.table()
       return features, embed
 

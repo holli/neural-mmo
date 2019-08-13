@@ -1,14 +1,10 @@
-from pdb import set_trace as T
 import numpy as np
-
 import time
 import ray
 import pickle
 from collections import defaultdict
 
 import projekt
-
-
 from forge import trinity
 from forge.trinity.timed import runtime
 
@@ -16,9 +12,8 @@ from forge.ethyr.io import Stimulus, Action, utils
 from forge.ethyr.torch import optim
 from forge.ethyr.experience import RolloutManager
 
-import torch
-
-@ray.remote(num_gpus=1)
+# @ray.remote
+# @ray.remote(num_gpus=1) # setting when calling so that we can switch easier
 class God(trinity.God):
    '''Server level God API demo
 
@@ -42,8 +37,7 @@ class God(trinity.God):
 
       self.manager = RolloutManager(config)
 
-      self.net = projekt.ANN(
-               config).to(self.config.DEVICE)
+      self.net = projekt.ANN(config).to(self.config.DEVICE)
 
    @runtime
    def step(self, recv):

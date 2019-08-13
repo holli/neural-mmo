@@ -4,7 +4,6 @@ import pickle
 import time
 
 from forge.trinity.timed import Timed, runtime, waittime
-from utils import global_consts
 
 #Cluster/Master logic
 class Pantheon(Timed):
@@ -20,10 +19,7 @@ class Pantheon(Timed):
    '''
    def __init__(self, trinity, config, args):
       super().__init__()
-      if global_consts.RAY_REMOTE_GOD:
-         self.disciples = [trinity.god.remote(trinity, config, args, idx) for idx in range(config.NGOD)]
-      else:
-         self.disciples = [trinity.god._modified_class(trinity, config, args, 0)]
+      self.disciples = [trinity.god.remote(trinity, config, args, idx) for idx in range(config.NGOD)]
 
    def distrib(self, packet):
       '''Asynchronous wrapper around the step function
@@ -54,11 +50,8 @@ class Pantheon(Timed):
          A list of step returns from all
          remote servers (God level API)
       '''
-      if global_consts.RAY_REMOTE_GOD:
-         rets = self.distrib(packet)
-         return self.sync(rets)
-      else:
-         return [self.disciples[0].step(packet)]
+      rets = self.distrib(packet)
+      return self.sync(rets)
 
    @waittime
    def sync(self, rets):

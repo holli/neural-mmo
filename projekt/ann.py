@@ -36,21 +36,35 @@ class ANN(nn.Module):
    def __init__(self, config):
       super().__init__()
       self.config = config
-      self.net = nn.ModuleList([Net(config)
-            for _ in range(config.NPOP)])
+      self.net = nn.ModuleList([Net(config) for _ in range(config.NPOP)])
 
       #Shared environment/action maps
       self.env    = Env(config)
       self.action = NetTree(config)
 
    #TODO: Need to select net index
-   def forward(self, pop, stim, obs=None, atnArgs=None):
-      net = self.net[pop]
+   def forward(self, pop, stim_input, obs=None, atnArgs=None):
+      # stim_input['Entity'][0] => [[(0, 1, 0, 1, 0)]]
+      # stim_input['Entity'][1] => defaultdict(<class 'list'>, {'Food': array([[32]]), 'Water': array([[32]]), 'Health': array([[10]]), 'TimeAlive': array([[0]]), 'Damage': array([[0]]), 'Freeze': array([[0]]), 'Immune': array([[15]]), 'Self': array([[1]]), 'Population': array([[0]]), 'R': array([[0]]), 'C': array([[0]]), 0: [], 1: []})
+      # len(stim_input['Tile'][0][0]) => 225
+      # stim_input['Tile'][0] => [[(0, 1, 2, 41, 1), (0, 1, 2, 42, 1), .....
+      # stim_input['Tile'][1].keys() => dict_keys(['NEnts', 'Index', 'RRel', 'CRel'])
+      # NEnts => number of entities, Index => Type of tile, RRel ja CRel => column ja row index,
+      # len(stim_input['Tile'][1]['NEnts'][0]) => 225
 
-      stim, embed = self.env(net, stim)
+      net = self.net[pop]
+      # sum([param.numel() for param in net.parameters() if param.requires_grad]) => 66177
+
+      stim, embed = self.env(net, stim_input)
+      # embed[0].values() => dict_values([0, 1, 2, ... 245
+      # embed[0] values on erikoiset
+         # embed[0][forge.blade.io.action.static.Melee] => 197
+         # embed[0][(0, 1, 2, 41, 1)] => 0
+      # embed[1].shape => torch.Size([246, 128])
       val         = net.val(stim)
 
       atnArgs, outs = self.action(stim, embed, obs, atnArgs)
+      # import ipdb; ipdb.set_trace()
       return atnArgs, outs, val
 
    def recvUpdate(self, update):
