@@ -5,6 +5,7 @@ from forge.trinity import smith, Trinity
 from forge.trinity.timed import TimeLog
 from projekt import Pantheon, God, Sword
 import ray
+import torch
 
 def GetGodRay(config):
    # return God
@@ -12,7 +13,6 @@ def GetGodRay(config):
       return ray.remote(num_gpus=1)(God)
    else:
       return ray.remote(num_cpus=1)(God)
-
 
 def train_loop(config, args):
    lib.ray.init(config.RAY_MODE)
@@ -25,8 +25,7 @@ def train_loop(config, args):
 
    while True:
       trinity.step()
-      logs = trinity.logs()
-      logs = TimeLog.log(logs)
+      TimeLog.log(trinity.logs())
 
 def parse_args():
    '''Processes command line arguments'''

@@ -110,7 +110,7 @@ class Model:
       saving_tick_checkpoint = self.model_tick % 10 == 0
       # saving_tick_checkpoint = self.model_tick % 50 == 0
       if saving_tick_checkpoint or info['time_duraction_checkpoint'] > 60*60: # minimum once a hour
-         self._save('model_'+str(self.model_tick), data)
+         self._save(f'model_{self.model_tick:04d}', data)
 
       self.time_checkpoint = time.time()
 

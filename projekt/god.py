@@ -43,33 +43,48 @@ class God(trinity.God):
    def step(self, recv):
       '''Broadcasts updated weights to the core level
       Sword rollout workers. Runs rollout workers'''
+      t = time.time()
       self.net.recvUpdate(recv)
-      self.rollouts(recv)
+
+      self.batch_size = []
+      self.forward_item_timing = []
+      self.backward_item_timing = []
+
+      self._rollouts(recv)
 
       #Send update
       grads = self.net.grads()
       logs, nUpdates, nRollouts  = self.manager.reset()
-      return grads, logs, nUpdates, nRollouts
+      tb_logs = {'batch_size_array': np.array(self.batch_size),
+                 'timing_forward_pass': np.mean(self.forward_item_timing),
+                 'timing_backward_pass': np.mean(self.backward_item_timing),
+                 'timing_total': time.time()-t }
+      return grads, logs, nUpdates, nRollouts, tb_logs
 
-   def rollouts(self, recv):
+   def _rollouts(self, recv):
       '''Runs rollout workers while asynchronously
       computing gradients over available experience'''
-      self.nRollouts, done = 0, False
+      done = False
       while not done:
          packets = super().distrib(recv) #async rollout workers
-         self.processRollouts()          #intermediate gradient computatation
+         self._processRollouts()          #intermediate gradient computatation
          packets = super().sync(packets) #sync next batches of experience
          self.manager.recv(packets)
 
          done = self.manager.nUpdates >= self.config.OPTIMUPDATES
-      self.processRollouts() #Last batch of gradients
+      self._processRollouts() #Last batch of gradients
 
-   def processRollouts(self):
+   def _processRollouts(self):
       '''Runs minibatch forwards/backwards
       over all available experience'''
       for batch in self.manager.batched(self.config.OPTIMBATCH, forOptim=True):
+         t = time.time()
          rollouts = self.forward(*batch)
+         self.forward_item_timing.append((time.time() -t)/len(rollouts))
+         self.batch_size.append(len(rollouts))
+         t = time.time()
          self.backward(rollouts)
+         self.backward_item_timing.append((time.time() -t)/len(rollouts))
 
    def forward(self, pop, rollouts, data):
       '''Recompute forward pass and assemble rollout objects'''

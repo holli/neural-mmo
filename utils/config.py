@@ -4,6 +4,7 @@ from pathlib import Path
 from torch.utils.tensorboard import SummaryWriter
 import yaml
 import numpy as np
+import ray
 
 from utils import global_consts # global_consts.config
 
@@ -26,35 +27,33 @@ class Config(config.Config):
    OPTIMIZER_WEIGHT_DECAY = 0.00001
 
    # NGOD   = 2  #Number of GPU optimizer servers
-   NGOD   = 1  #Number of GPU optimizer servers
-   NSWORD = 2  #Number of CPU rollout workers per server
+   # NGOD   = 1  #Number of GPU optimizer servers
+   # NSWORD = 2  #Number of CPU rollout workers per server
 
-   #EPOCHUPDATES: Number of experience steps per
-   #synchronized gradient step at the cluster level
-   # EPOCHUPDATES = 2**14 #Training
-   # EPOCHUPDATES = 2**8  #Local debug
-   #EPOCHUPDATES = 2**2 # OHU TEST
-   EPOCHUPDATES = 2**10 # OHU TRAIN
+   # EPOCHUPDATES: Number of experience steps per synchronized gradient step at the cluster level
+   # [2**i for i in range(8,14+1)] => [256, 512, 1024, 2048, 4096, 8192, 16384]
 
-   #OPTIMUPDATES: Number of experience steps per
-   #optimizer server per cluster level step
-   #SYNCUPDATES: Number of experience steps between
-   #syncing rollout workers to the optimizer server
-   OPTIMUPDATES = EPOCHUPDATES / NGOD
-   SYNCUPDATES  = OPTIMUPDATES / 2**4
+   # # EPOCHUPDATES = 2**14 #Training
+   # # EPOCHUPDATES = 2**8  #Local debug
+   # #EPOCHUPDATES = 2**2 # OHU TEST
+   # # EPOCHUPDATES = 2**8
 
-   #OPTIMBATCH: Number of experience steps per
-   #.backward minibatch on optimizer servers
-   #SYNCUPDATES: Number of experience steps between
-   #syncing rollout workers to the optimizer server
-   OPTIMBATCH  = SYNCUPDATES * NGOD
-   SYNCBATCH   = SYNCUPDATES
+   #OPTIMUPDATES: Number of experience steps per optimizer server per cluster level step
+   #SYNCUPDATES: Number of experience steps between syncing rollout workers to the optimizer server
+   #             So equally its the batch size we use in backward pass
+   # OPTIMUPDATES = EPOCHUPDATES / NGOD
+   # SYNCUPDATES  = OPTIMUPDATES / 2**4
+
+   #OPTIMBATCH: Number of experience steps per backward minibatch on optimizer servers
+   #SYNCUPDATES: Number of experience steps between syncing rollout workers to the optimizer server
+   # OPTIMBATCH  = SYNCUPDATES * NGOD
+   # SYNCBATCH   = SYNCUPDATES
 
    RAY_MODE = 'default' # 'local' / 'default' / 'remote'
 
    #Device used on the God optimizer server. Rollout workers use CPU by default
    #Also used for ray to set num_gpus=1 if this is cuda
-   DEVICE = 'cuda:0'
+   # DEVICE = 'cuda:0'
    # DEVICE = 'cpu'
 
    def log_writer(self):
